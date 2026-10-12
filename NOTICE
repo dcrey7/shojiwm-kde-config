@@ -1,0 +1,64 @@
+shojiwm-kde-config
+Copyright (C) 2026 Abhishek
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version. See LICENSE for the full text.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+
+Third-party work
+================
+
+Some files are ports of other GPL projects. Their authors keep their
+copyright. The ports are under GPL-3.0-or-later as part of this program.
+
+src/jelly-drag.ts, src/effect/jelly-drag.frag
+  A port of KWin's wobblywindows effect
+  (https://invent.kde.org/plasma/kwin, src/plugins/wobblywindows).
+  Copyright (C) 2008 Cédric Borgese. License: GPL-2.0-or-later.
+
+src/magic-lamp.ts, src/effect/magic-lamp.frag
+  A port of KWin's magiclamp effect
+  (https://invent.kde.org/plasma/kwin, src/plugins/magiclamp).
+  Copyright (C) 2008 Martin Gräßlin. License: GPL-2.0-or-later.
+
+src/sliding-popups.ts
+  A port of KWin's slidingpopups effect
+  (https://invent.kde.org/plasma/kwin, src/plugins/slidingpopups).
+  Copyright (C) 2009 Marco Martin, 2018 Vlad Zahorodnii.
+  License: GPL-2.0-or-later.
+
+src/coverflow.tsx, src/switcher-label.ts, src/helpers/switcher-label.py
+  A port of the GNOME Shell extension "Coverflow Alt-Tab"
+  (https://github.com/dsheeler/CoverflowAltTab, src/coverflowSwitcher.js).
+  Copyright (C) its authors. License: GPL-3.0.
+
+The rest started from ShojiWM's default config
+(https://github.com/bea4dev/ShojiWM, packages/config):
+
+  MIT License
+
+  Copyright (c) 2026 bea4dev
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to
+  deal in the Software without restriction, including without limitation the
+  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+  sell copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+  IN THE SOFTWARE.
