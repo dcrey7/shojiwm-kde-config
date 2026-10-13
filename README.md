@@ -37,9 +37,13 @@ instead of KWin, and adds Mac and KDE style effects on top.
 
 ## Requirements
 
-- **ShojiWM with the KDE Plasma protocols.** These come from the
-  `kde-plasma-protocols` pull request on bea4dev/ShojiWM. Until it merges,
-  build ShojiWM from that branch (see Install).
+- **ShojiWM from `main`.** The KDE Plasma protocols are in bea4dev/ShojiWM
+  `main` (pull request #130, merged). They are experimental. A ShojiWM
+  release from before the merge does not run this config.
+  - Or use the fork branch
+    [dcrey7/ShojiWM `kde-plasma-session`](https://github.com/dcrey7/ShojiWM/tree/kde-plasma-session).
+    It is upstream `main` plus a few fixes that are not upstream yet, for
+    example a fix for Ctrl+C in X11 apps pasting the previous copy.
 - **KDE Plasma 6:** `plasmashell`, `kglobalacceld`, `qdbus6`, the polkit KDE
   agent and Spectacle.
 - **Python helpers:** `python3` with `python-gobject` (PyGObject) and `grim`.
@@ -58,14 +62,18 @@ sudo pacman -S plasma-desktop kglobalacceld qt6-tools polkit-kde-agent spectacle
 
 ## Install
 
-1. Build and install ShojiWM with the KDE Plasma protocols:
+1. Build and install ShojiWM from `main`:
 
    ```sh
    git clone https://github.com/bea4dev/ShojiWM
    cd ShojiWM
-   git fetch https://github.com/dcrey7/ShojiWM kde-plasma-protocols
-   git checkout FETCH_HEAD
    ./dist/install.sh
+   ```
+
+   For the extra fixes, clone the fork branch instead:
+
+   ```sh
+   git clone -b kde-plasma-session https://github.com/dcrey7/ShojiWM
    ```
 
 2. Move your current config out of the way and clone this one in its place:
