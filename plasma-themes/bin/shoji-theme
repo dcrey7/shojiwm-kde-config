@@ -1,0 +1,64 @@
+#!/bin/sh
+# Switch the whole desktop look: shoji-theme aero | mac | status
+#
+#   aero  ShojiWM Aero Global Theme: dark glass panel, start orb, Aero title bars
+#   mac   ShojiWM Mac Global Theme: your panel with Kickoff, traffic lights
+#
+# Why not only System Settings > Global Theme: Plasma's "apply" writes the
+# theme's values into ~/.config/kdedefaults, a layer that only a startplasma
+# session reads (it puts that folder on XDG_CONFIG_DIRS). The ShojiWM session
+# does not, so this also writes the same values into the user config.
+set -eu
+
+SETUP="$(cd "$(dirname "$0")/.." && pwd)"
+THEME_JSON="$HOME/.config/shojiwm/theme.json"
+
+usage() {
+  echo "usage: shoji-theme aero|mac|status" >&2
+  exit 2
+}
+
+status() {
+  echo "Global Theme:  $(kreadconfig6 --file kdeglobals --group KDE --key LookAndFeelPackage)"
+  echo "Plasma theme:  $(kreadconfig6 --file plasmarc --group Theme --key name)"
+  echo "Icons:         $(kreadconfig6 --file kdeglobals --group Icons --key Theme)"
+  echo "Widget style:  $(kreadconfig6 --file kdeglobals --group KDE --key widgetStyle)"
+  if [ -f "$THEME_JSON" ]; then
+    echo "Title bars:    $(cat "$THEME_JSON")"
+  fi
+}
+
+[ $# -eq 1 ] || usage
+case "$1" in
+  status) status; exit 0 ;;
+  aero) id=org.shojiwm.aero.desktop; plasma=ShojiWM-Aero ;;
+  mac) id=org.shojiwm.mac.desktop; plasma=default ;;
+  *) usage ;;
+esac
+
+# Applying a Global Theme can drop these; keep yours.
+icons=$(kreadconfig6 --file kdeglobals --group Icons --key Theme)
+style=$(kreadconfig6 --file kdeglobals --group KDE --key widgetStyle)
+
+echo "Applying $id (panel and desktop rebuilt from the saved layout)..."
+lookandfeeltool --apply "$id" --resetLayout 2>&1 | grep -v xrdb || true
+
+# The same values, in the layer this session reads.
+kwriteconfig6 --file plasmarc --group Theme --key name "$plasma"
+[ -n "$icons" ] && kwriteconfig6 --file kdeglobals --group Icons --key Theme "$icons"
+[ -n "$style" ] && kwriteconfig6 --file kdeglobals --group KDE --key widgetStyle "$style"
+echo "Plasma theme: $plasma, icons: ${icons:-unchanged}, widget style: ${style:-unchanged}"
+
+# ShojiWM title bars follow this file (and kdeglobals LookAndFeelPackage).
+mkdir -p "$(dirname "$THEME_JSON")"
+printf '{"titlebar":"%s"}\n' "$1" > "$THEME_JSON"
+echo "Title bars: $1 ($THEME_JSON)"
+if command -v shoji_wm >/dev/null 2>&1; then
+  shoji_wm --reload >/dev/null 2>&1 && echo "ShojiWM config reloaded" || echo "ShojiWM reload failed (title bars keep the old style)"
+fi
+
+# plasmashell only reads a new Plasma theme at start.
+echo "Restarting plasmashell (the panel blinks for ~2 s)..."
+sh "$SETUP/bin/restart-plasmashell.sh"
+echo "Done."
+status

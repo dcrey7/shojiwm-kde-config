@@ -1,0 +1,5 @@
+# AeroThemePlasma (AGPL-3.0) is downloaded here by bin/fetch-aerothemeplasma.sh.
+third_party/
+__pycache__/
+# Our rewrite of SevenStart's StartOrb.qml is AGPL-3.0 and not shipped here.
+bin/StartOrb.qml

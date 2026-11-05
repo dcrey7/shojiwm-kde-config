@@ -1,0 +1,15 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [{ "Name": "Abhishek" }],
+        "Category": "File System",
+        "Description": "Opens the trash; a second click minimizes it, like a taskbar entry",
+        "Icon": "user-trash",
+        "Id": "org.shojiwm.trashtoggle",
+        "License": "GPL-2.0-or-later",
+        "Name": "Recycle Bin (toggle)",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-MainScript": "ui/main.qml"
+}
