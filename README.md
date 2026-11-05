@@ -22,6 +22,7 @@ instead of KWin, and adds Mac and KDE style effects on top.
 | **Tiling or floating** | Each workspace tiles or floats. `Super+S` switches. |
 | **Cheat sheet** | `Super+/` shows every key on screen. `shoji-keys` prints them in a terminal. |
 | **Screenshots** | Spectacle works (Print Screen), through a small stand-in for KWin's screenshot service. |
+| **Aero and Mac looks** | Two Global Themes for System Settings: a dark Aero glass panel with a glowing start orb, or the Mac look. See [docs/aero-and-mac-themes.md](docs/aero-and-mac-themes.md). |
 
 | Coverflow | Grid | Magic Lamp |
 | --- | --- | --- |

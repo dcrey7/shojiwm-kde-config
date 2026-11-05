@@ -14,6 +14,12 @@ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 Third-party work
 ================
 
+plasma-themes/
+  Build scripts for the Aero look. They download AeroThemePlasma
+  (https://github.com/aeroshell-desktop/aerothemeplasma, AGPL-3.0: the
+  Seven-Black Plasma theme and the SevenStart menu) at build time and patch
+  copies on the user's machine. No AeroThemePlasma file is in this repo.
+
 Some files are ports of other GPL projects. Their authors keep their
 copyright. The ports are under GPL-3.0-or-later as part of this program.
 
