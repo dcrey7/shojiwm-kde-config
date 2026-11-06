@@ -8,11 +8,11 @@ General/glass (default false), picks the look:
   glass = true   round macOS glass lights in blue, like the title bar
                  traffic lights (images from make-workspace-lights.py): the
                  current workspace is blue glass, the others grey glass;
-                 hover grows the light 1.1x and fades in the blue tint
+                 hover grows the light 1.2x and fades in the blue tint
                  (both 200 ms, soft start and stop; the number sits
-                 inside the light, centred on its glyph, and scales
+                 inside the light, centred on the light, and scales
                  with it as one unit),
-                 a press pops it to 1.2x
+                 a press pops it to 1.3x
 
 The Aero layout (make-global-themes.py) writes glass = true. Clicking still
 switches the workspace, and the count still follows the workspaces.
@@ -105,27 +105,26 @@ NEW_BACKGROUND = """                background: Item {
                             Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.InOutCubic } }
                         }
                         // The number, in the light so the two scale as one.
-                        // A line box has room for descenders below a digit,
-                        // so centre the digit's ink, not its box.
+                        // Noto Sans digits are all 0.572 em wide, and each
+                        // one is drawn visually centred in that width. So
+                        // place the text from the font design, not from the
+                        // laid-out width: plasmashell rounds that to whole
+                        // pixels, which pushed the digit right.
+                        // Digits stand 0.714 em tall on the baseline, so the
+                        // baseline sits 0.357 em below the light's centre.
+                        // No hinting and no pixel snapping, so the digit
+                        // lands exactly there.
                         Text {
                             id: number
-                            readonly property rect ink: numberMetrics.tightBoundingRect(text)
-                            anchors.centerIn: parent
-                            anchors.alignWhenCentered: false
-                            anchors.horizontalCenterOffset: width / 2 - (ink.x + ink.width / 2)
-                            anchors.verticalCenterOffset: height / 2 - (numberMetrics.ascent + ink.y + ink.height / 2)
+                            x: parent.width / 2 - 0.286 * font.pixelSize * text.length
+                            y: parent.height / 2 + 0.357 * font.pixelSize - baselineOffset
                             text: (index + 1).toString()
-                            renderType: Text.QtRendering
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
+                            renderType: Text.CurveRendering
                             color: pill.isCurrent || pill.hovered ? "#ffffff" : "#c4ccd8"
-                            font.pointSize: Kirigami.Theme.defaultFont.pointSize
+                            font.family: "Noto Sans"
+                            font.pixelSize: root.lightSize * 0.6
+                            font.hintingPreference: Font.PreferNoHinting
                             font.bold: pill.isCurrent
-
-                            FontMetrics {
-                                id: numberMetrics
-                                font: number.font
-                            }
                         }
                     }
                 }
@@ -140,8 +139,8 @@ qml = qml.replace(
     "                onClicked: root.switchDesktop(index)\n",
     "                onClicked: root.switchDesktop(index)\n"
     "\n"
-    "                // 1.1x under the pointer (soft start and stop), 1.2x pressed (springs back).\n"
-    "                property real grow: root.glass ? (pressed ? 1.2 : (hovered ? 1.1 : 1.0)) : 1.0\n"
+    "                // 1.2x under the pointer (soft start and stop), 1.3x pressed (springs back).\n"
+    "                property real grow: root.glass ? (pressed ? 1.3 : (hovered ? 1.2 : 1.0)) : 1.0\n"
     "                Behavior on grow {\n"
     "                    NumberAnimation {\n"
     "                        duration: 200\n"
@@ -165,7 +164,7 @@ qml = qml.replace(
     "    // The glass light's diameter: a little inside the round cell.\n"
     "    readonly property real lightSize: Math.round(Kirigami.Units.gridUnit * 1.3)\n",
 )
-for needle in ["property real grow", "readonly property real lightSize", "macOS glass light in blue", "scale: pill.grow", "visible: !root.glass", "id: numberMetrics"]:
+for needle in ["property real grow", "readonly property real lightSize", "macOS glass light in blue", "scale: pill.grow", "visible: !root.glass", "Text.CurveRendering"]:
     if needle not in qml:
         raise SystemExit(f"patch failed: {needle!r} missing (original changed?)")
 (pkg / "contents/ui/main.qml").write_text(qml)
