@@ -143,25 +143,44 @@ for f in ui.glob("*.qml"):
             'NumberAnimation { properties: "opacity"; easing.type: Easing.OutCubic; '
             "duration: mouseAreaCompositingOff.containsMouse ? 130 : 250 }",
         )
-        # A physical press: the click opens the menu, which shows the pushed-in
-        # frame at once (no animation). When the menu closes, the orb springs
-        # back: it starts 5% small and grows past full size, then settles.
-        for frame in ["buttonIcon", "buttonIconHovered"]:
-            s, n = re.subn(rf"^(\s*)id: {frame}$", rf"\1id: {frame}\n\1scale: floatingOrb.releaseScale", s, flags=re.M)
+        # A physical press. The menu opens on the mouse PRESS, so the orb
+        # cannot wait for the release: each left press (and each menu open,
+        # e.g. the Super key) plays a short pulse. The pushed-in frame shows
+        # at 94% size for 100 ms, then the orb springs back up with a slight
+        # overshoot. While the menu stays open, the orb shows its normal (or
+        # hover) look, not the pushed-in frame (upstream kept it pressed).
+        for frame in ["buttonIcon", "buttonIconPressed", "buttonIconHovered"]:
+            s, n = re.subn(rf"^(\s*)id: {frame}$", rf"\1id: {frame}\n\1scale: floatingOrb.pressScale", s, flags=re.M)
             if n != 1:
                 sys.exit(f"FloatingOrb.qml: id: {frame} not found (upstream changed?)")
+        for old, new in [
+            ("visible: dashWindow.visible\n", "visible: floatingOrb.pressedLook\n"),
+            ("visible:  !dashWindow.visible\n", "visible: !floatingOrb.pressedLook\n"),
+        ]:
+            if s.count(old) != 1:
+                sys.exit(f"FloatingOrb.qml: {old!r} not found once (upstream changed?)")
+            s = s.replace(old, new)
         spring = """    clip: false
 
-    // ShojiWM: the spring back when the menu closes (see patch-sevenstart.py).
-    property real releaseScale: 1
+    // ShojiWM: the press pulse (see patch-sevenstart.py).
+    property bool pressedLook: false
+    property real pressScale: 1
+    Connections {
+        target: mouseAreaCompositingOff
+        function onPressed(mouse) { if (mouse.button === Qt.LeftButton) pressPulse.restart(); }
+    }
     Connections {
         target: dashWindow
-        function onVisibleChanged() { if (!dashWindow.visible) releaseSpring.restart(); }
+        // A menu opened without a click (Super key) gets the same pulse.
+        function onVisibleChanged() { if (dashWindow.visible && !pressPulse.running) pressPulse.restart(); }
     }
     SequentialAnimation {
-        id: releaseSpring
-        PropertyAction { target: floatingOrb; property: "releaseScale"; value: 0.95 }
-        NumberAnimation { target: floatingOrb; property: "releaseScale"; to: 1; duration: 200; easing.type: Easing.OutBack; easing.overshoot: 2.5 }
+        id: pressPulse
+        PropertyAction { target: floatingOrb; property: "pressedLook"; value: true }
+        PropertyAction { target: floatingOrb; property: "pressScale"; value: 0.94 }
+        PauseAnimation { duration: 100 }
+        PropertyAction { target: floatingOrb; property: "pressedLook"; value: false }
+        NumberAnimation { target: floatingOrb; property: "pressScale"; to: 1; duration: 180; easing.type: Easing.OutBack; easing.overshoot: 2.5 }
     }
 """
         if "    clip: false\n" not in s:
