@@ -9,6 +9,7 @@ and WackyIdeas).
     python3 make-aero-plasma-theme.py [path/to/aerothemeplasma]
 """
 
+import gzip
 import json
 import pathlib
 import re
@@ -87,6 +88,8 @@ def add_task_margins(svg: pathlib.Path) -> None:
 DARK_SVGS = [
     ("widgets/lineedit.svg", "surface"),
     ("widgets/media-delegate.svg", "surface"),
+    # Push buttons (notification actions, dialogs): white with light text.
+    ("widgets/button.svg", "surface"),
     ("solid/dialogs/background.svg", "surface"),
     ("solid/widgets/tooltip.svg", "surface"),
     ("widgets/viewitem.svg", "highlight"),
@@ -119,6 +122,25 @@ def dark_colors(path: pathlib.Path) -> None:
     print("light text in", path.relative_to(OUT))
 
 
+# Popups (notifications, menus): Seven-Black's popup middle is fully clear and
+# leans on KWin's blur. With ShojiWM's glass off, the page behind showed
+# through and white text sat on white. This dark tint keeps them readable.
+DIALOG_TINT = "opacity:1;fill:#12141a;fill-opacity:0.8;"
+
+
+def tint_dialog(svgz: pathlib.Path) -> None:
+    text = gzip.decompress(svgz.read_bytes()).decode()
+    start = text.index('id="center"')
+    end = text.index("</g>", start)
+    group = text[start:end]
+    old = "opacity:0;fill:#000000;fill-opacity:0.2;"
+    if group.count(old) != 1:
+        sys.exit(f"{svgz}: popup middle not found (upstream changed?)")
+    text = text[:start] + group.replace(old, DIALOG_TINT) + text[end:]
+    svgz.write_bytes(gzip.compress(text.encode()))
+    print("dark popup middle in", svgz.relative_to(OUT))
+
+
 def main() -> None:
     if OUT.exists():
         shutil.rmtree(OUT)
@@ -130,6 +152,8 @@ def main() -> None:
     for f, mode in DARK_SVGS:
         if (OUT / f).exists():
             darken_file(OUT / f, mode)
+    for f in ["dialogs/background.svgz", "translucent/dialogs/background.svgz"]:
+        tint_dialog(OUT / f)
     for f in ["colors", "translucent/colors"]:
         dark_colors(OUT / f)
     # Notifications and tray popups: the macOS 27 red glass close.
