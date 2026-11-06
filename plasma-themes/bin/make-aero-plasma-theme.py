@@ -127,18 +127,34 @@ def dark_colors(path: pathlib.Path) -> None:
 # through and white text sat on white. This dark tint keeps them readable.
 DIALOG_TINT = "opacity:1;fill:#12141a;fill-opacity:0.8;"
 
+# Each frame piece (edges and corners) is a 1 px dark outer line, a 1 px light
+# inner line and a 4 px clear strip. The clear strip showed the blurred page
+# between the rim and the dark middle: on a light page the popup got a thick
+# light band around it. The tint fills the strip too, so the dark body reaches
+# the rim.
+DIALOG_PIECES = ["center", "top", "bottom", "left", "right", "topleft", "topright", "bottomleft", "bottomright"]
+CLEAR_FILL = "opacity:0;fill:#000000;fill-opacity:0.2;"
+
+# The light inner line: Seven-Black's 60% light grey read as a white border on
+# the dark body. A faint line keeps the Windows 7 glass edge.
+INNER_LINE_OLD = "stop-color:#e5e5e5;stop-opacity:0.60000002;"
+INNER_LINE_NEW = "stop-color:#e5e5e5;stop-opacity:0.22;"
+
 
 def tint_dialog(svgz: pathlib.Path) -> None:
     text = gzip.decompress(svgz.read_bytes()).decode()
-    start = text.index('id="center"')
-    end = text.index("</g>", start)
-    group = text[start:end]
-    old = "opacity:0;fill:#000000;fill-opacity:0.2;"
-    if group.count(old) != 1:
-        sys.exit(f"{svgz}: popup middle not found (upstream changed?)")
-    text = text[:start] + group.replace(old, DIALOG_TINT) + text[end:]
+    for piece in DIALOG_PIECES:
+        start = text.index(f'id="{piece}"')
+        end = text.index("</g>", start)
+        group = text[start:end]
+        if group.count(CLEAR_FILL) != 1:
+            sys.exit(f"{svgz}: popup piece {piece} not found (upstream changed?)")
+        text = text[:start] + group.replace(CLEAR_FILL, DIALOG_TINT) + text[end:]
+    if text.count(INNER_LINE_OLD) != 1:
+        sys.exit(f"{svgz}: popup inner line not found (upstream changed?)")
+    text = text.replace(INNER_LINE_OLD, INNER_LINE_NEW)
     svgz.write_bytes(gzip.compress(text.encode()))
-    print("dark popup middle in", svgz.relative_to(OUT))
+    print("dark popup body and faint rim in", svgz.relative_to(OUT))
 
 
 def main() -> None:
