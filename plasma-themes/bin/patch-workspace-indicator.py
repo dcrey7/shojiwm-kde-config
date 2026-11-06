@@ -9,8 +9,9 @@ General/glass (default false), picks the look:
                  traffic lights (images from make-workspace-lights.py): the
                  current workspace is blue glass, the others grey glass;
                  hover grows the light 1.1x and fades in the blue tint
-                 (both 200 ms, soft start and stop; the number scales
-                 smoothly with Qt text rendering),
+                 (both 200 ms, soft start and stop; the number sits
+                 inside the light, centred on its glyph, and scales
+                 with it as one unit),
                  a press pops it to 1.2x
 
 The Aero layout (make-global-themes.py) writes glass = true. Clicking still
@@ -103,6 +104,29 @@ NEW_BACKGROUND = """                background: Item {
                             opacity: pill.isCurrent || pill.pressed ? 1 : (pill.hovered ? 0.55 : 0)
                             Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.InOutCubic } }
                         }
+                        // The number, in the light so the two scale as one.
+                        // A line box has room for descenders below a digit,
+                        // so centre the digit's ink, not its box.
+                        Text {
+                            id: number
+                            readonly property rect ink: numberMetrics.tightBoundingRect(text)
+                            anchors.centerIn: parent
+                            anchors.alignWhenCentered: false
+                            anchors.horizontalCenterOffset: width / 2 - (ink.x + ink.width / 2)
+                            anchors.verticalCenterOffset: height / 2 - (numberMetrics.ascent + ink.y + ink.height / 2)
+                            text: (index + 1).toString()
+                            renderType: Text.QtRendering
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            color: pill.isCurrent || pill.hovered ? "#ffffff" : "#c4ccd8"
+                            font.pointSize: Kirigami.Theme.defaultFont.pointSize
+                            font.bold: pill.isCurrent
+
+                            FontMetrics {
+                                id: numberMetrics
+                                font: number.font
+                            }
+                        }
                     }
                 }
 
@@ -126,18 +150,12 @@ qml = qml.replace(
     "                }\n",
 )
 qml = qml.replace(
-    "                    color: pill.isCurrent\n"
-    "                           ? Kirigami.Theme.highlightedTextColor\n"
-    "                           : Kirigami.Theme.textColor\n",
-    "                    scale: pill.grow\n"
-    "                    renderType: Text.QtRendering\n"
-    "                    color: root.glass\n"
-    "                           ? (pill.isCurrent || pill.hovered ? \"#ffffff\" : \"#c4ccd8\")\n"
-    "                           : (pill.isCurrent\n"
-    "                              ? Kirigami.Theme.highlightedTextColor\n"
-    "                              : Kirigami.Theme.textColor)\n"
-    "                    style: root.glass ? Text.Raised : Text.Normal\n"
-    "                    styleColor: \"#80000000\"\n",
+    "                contentItem: PC3.Label {\n"
+    "                    text: (index + 1).toString()\n",
+    "                contentItem: PC3.Label {\n"
+    "                    // Glass mode draws its number inside the light.\n"
+    "                    visible: !root.glass\n"
+    "                    text: (index + 1).toString()\n",
 )
 qml = qml.replace(
     "    readonly property var currentDesktop: vdInfo.currentDesktop\n",
@@ -147,7 +165,7 @@ qml = qml.replace(
     "    // The glass light's diameter: a little inside the round cell.\n"
     "    readonly property real lightSize: Math.round(Kirigami.Units.gridUnit * 1.3)\n",
 )
-for needle in ["property real grow", "readonly property real lightSize", "macOS glass light in blue", "scale: pill.grow"]:
+for needle in ["property real grow", "readonly property real lightSize", "macOS glass light in blue", "scale: pill.grow", "visible: !root.glass", "id: numberMetrics"]:
     if needle not in qml:
         raise SystemExit(f"patch failed: {needle!r} missing (original changed?)")
 (pkg / "contents/ui/main.qml").write_text(qml)
