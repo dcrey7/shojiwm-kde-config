@@ -8,7 +8,9 @@ General/glass (default false), picks the look:
   glass = true   round macOS glass lights in blue, like the title bar
                  traffic lights (images from make-workspace-lights.py): the
                  current workspace is blue glass, the others grey glass;
-                 hover grows the light 1.1x and fades in the blue tint,
+                 hover grows the light 1.1x and fades in the blue tint
+                 (both 200 ms, soft start and stop; the number scales
+                 smoothly with Qt text rendering),
                  a press pops it to 1.2x
 
 The Aero layout (make-global-themes.py) writes glass = true. Clicking still
@@ -99,7 +101,7 @@ NEW_BACKGROUND = """                background: Item {
                             sourceSize: Qt.size(width * 2, height * 2)
                             smooth: true
                             opacity: pill.isCurrent || pill.pressed ? 1 : (pill.hovered ? 0.55 : 0)
-                            Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                            Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.InOutCubic } }
                         }
                     }
                 }
@@ -114,12 +116,12 @@ qml = qml.replace(
     "                onClicked: root.switchDesktop(index)\n",
     "                onClicked: root.switchDesktop(index)\n"
     "\n"
-    "                // 1.1x under the pointer (ease out), 1.2x pressed (springs back).\n"
+    "                // 1.1x under the pointer (soft start and stop), 1.2x pressed (springs back).\n"
     "                property real grow: root.glass ? (pressed ? 1.2 : (hovered ? 1.1 : 1.0)) : 1.0\n"
     "                Behavior on grow {\n"
     "                    NumberAnimation {\n"
-    "                        duration: 150\n"
-    "                        easing.type: pill.pressed ? Easing.OutBack : Easing.OutCubic\n"
+    "                        duration: 200\n"
+    "                        easing.type: pill.pressed ? Easing.OutBack : Easing.InOutCubic\n"
     "                    }\n"
     "                }\n",
 )
@@ -128,6 +130,7 @@ qml = qml.replace(
     "                           ? Kirigami.Theme.highlightedTextColor\n"
     "                           : Kirigami.Theme.textColor\n",
     "                    scale: pill.grow\n"
+    "                    renderType: Text.QtRendering\n"
     "                    color: root.glass\n"
     "                           ? (pill.isCurrent || pill.hovered ? \"#ffffff\" : \"#c4ccd8\")\n"
     "                           : (pill.isCurrent\n"
