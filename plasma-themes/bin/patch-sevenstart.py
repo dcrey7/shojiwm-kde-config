@@ -143,6 +143,30 @@ for f in ui.glob("*.qml"):
             'NumberAnimation { properties: "opacity"; easing.type: Easing.OutCubic; '
             "duration: mouseAreaCompositingOff.containsMouse ? 130 : 250 }",
         )
+        # A physical press: the click opens the menu, which shows the pushed-in
+        # frame at once (no animation). When the menu closes, the orb springs
+        # back: it starts 5% small and grows past full size, then settles.
+        for frame in ["buttonIcon", "buttonIconHovered"]:
+            s, n = re.subn(rf"^(\s*)id: {frame}$", rf"\1id: {frame}\n\1scale: floatingOrb.releaseScale", s, flags=re.M)
+            if n != 1:
+                sys.exit(f"FloatingOrb.qml: id: {frame} not found (upstream changed?)")
+        spring = """    clip: false
+
+    // ShojiWM: the spring back when the menu closes (see patch-sevenstart.py).
+    property real releaseScale: 1
+    Connections {
+        target: dashWindow
+        function onVisibleChanged() { if (!dashWindow.visible) releaseSpring.restart(); }
+    }
+    SequentialAnimation {
+        id: releaseSpring
+        PropertyAction { target: floatingOrb; property: "releaseScale"; value: 0.95 }
+        NumberAnimation { target: floatingOrb; property: "releaseScale"; to: 1; duration: 200; easing.type: Easing.OutBack; easing.overshoot: 2.5 }
+    }
+"""
+        if "    clip: false\n" not in s:
+            sys.exit("FloatingOrb.qml: clip: false not found (upstream changed?)")
+        s = s.replace("    clip: false\n", spring, 1)
     # Dark Aero: no white anywhere. Upstream is the light Windows 7 menu with
     # hard-coded colours; these become light text on dark smoky glass.
     for old, new in DARK_QML.get(f.name, []):

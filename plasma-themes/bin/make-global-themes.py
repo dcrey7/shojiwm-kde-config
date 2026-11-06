@@ -30,10 +30,11 @@ SETUP = pathlib.Path(__file__).resolve().parent.parent
 DEFAULT_SNAPSHOT = HOME / ".config/plasma-org.kde.plasma.desktop-appletsrc"
 LNF_DIR = HOME / ".local/share/plasma/look-and-feel"
 MAC_START_ICON = os.environ.get("SHOJI_START_ICON", "start-here-kde")
-ORB_SHEET = SETUP / "assets/start-orb/start-orb-sheet.png"
+ORB_SHEET = SETUP / "assets/start-orb/start-orb-vista-sheet.png"
 PANEL_THICKNESS = 40
-# The start orb: taller than the panel, like Windows 7 (40 px bar, ~46 px orb).
-ORB_SIZE = 46
+# The start orb: the ball is about 1.15x the panel and sticks out above it,
+# like Vista (40 px bar, 56 px orb picture, about a 46 px ball).
+ORB_SIZE = 56
 # The desktop widget positions, when the saved config has none for any screen.
 SCREEN_KEY = "ItemGeometries-2560x1440"
 
@@ -193,7 +194,7 @@ def start_button_lines(var: str, groups, prefix, start_button: str) -> list[str]
         # The Mac look keeps a plain Kickoff button (SHOJI_START_ICON).
         lines += [f'{var}.currentConfigGroup = ["General"];', f'{var}.writeConfig("icon", {js(MAC_START_ICON)});']
         return lines
-    orb = LNF_DIR / "org.shojiwm.aero.desktop/contents/orb/start-orb-sheet.png"
+    orb = LNF_DIR / "org.shojiwm.aero.desktop/contents/orb/start-orb-vista-sheet.png"
     lines = [f'var {var} = panel.addWidget("io.gitgud.wackyideas.SevenStart");']
     shortcut = groups.get(prefix + ("Shortcuts",), {}).get("global")
     if shortcut:
@@ -291,7 +292,7 @@ def build(kind: str, groups) -> pathlib.Path:
     (root / "contents/layouts/org.kde.plasma.desktop-layout.js").write_text(layout_script(groups, start))
     if kind == "aero":
         (root / "contents/orb").mkdir()
-        shutil.copy(ORB_SHEET, root / "contents/orb/start-orb-sheet.png")
+        shutil.copy(ORB_SHEET, root / "contents/orb/start-orb-vista-sheet.png")
     for preview in ("preview.png", "fullscreenpreview.jpg"):
         src = SETUP / f"assets/global-theme-previews/{kind}-{preview}"
         if src.exists():
