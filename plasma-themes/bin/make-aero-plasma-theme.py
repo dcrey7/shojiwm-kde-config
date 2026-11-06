@@ -24,19 +24,20 @@ SRC = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else pathlib.Path(__file__)
 SEVEN_BLACK = SRC / "plasma/desktoptheme/Seven-Black"
 OUT = pathlib.Path.home() / ".local/share/plasma/desktoptheme/ShojiWM-Aero"
 
-# The glass middle: a ~62% dark smoky tint (ShojiWM blurs behind it), then a white shine that fades
+# The glass middle: an 82% dark smoky tint in the title bar's colour, as dark as
+# the title bars look (ShojiWM blurs behind it), then a white shine that fades
 # out by half height (the Windows 7 taskbar's "two halves" look). Its own
 # corner of the canvas keeps it apart from Seven-Black's drawings.
 CENTER_DEFS = """
 <defs><linearGradient id="shojiwm-aero-shine" x1="0" y1="0" x2="0" y2="1">
-  <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+  <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"/>
   <stop offset="0.48" stop-color="#ffffff" stop-opacity="0.05"/>
   <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
   <stop offset="1" stop-color="#000000" stop-opacity="0.12"/>
 </linearGradient></defs>
 """
 CENTER_GROUP = """<g id="{id}">
-  <rect x="-2000" y="-2000" width="100" height="100" fill="#0a0f15" fill-opacity="0.62"/>
+  <rect x="-2000" y="-2000" width="100" height="100" fill="#12141a" fill-opacity="0.82"/>
   <rect x="-2000" y="-2000" width="100" height="100" fill="url(#shojiwm-aero-shine)"/>
 </g>
 """
