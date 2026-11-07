@@ -19,6 +19,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from close_button import write_close_icons  # noqa: E402
 from darken_svg import darken_file  # noqa: E402
+from taskbar_hover import add_task_hovers, tray_button_highlight  # noqa: E402
 from tooltip_frame import write_tooltip  # noqa: E402
 
 SRC = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else pathlib.Path(__file__).resolve().parent.parent / "third_party/aerothemeplasma"
@@ -69,7 +70,7 @@ def add_task_margins(svg: pathlib.Path) -> None:
     whole border pieces top and bottom) left ~16 px icons. The buttons get
     their width back from the task manager's iconSpacing setting."""
     text = svg.read_text()
-    prefixes = sorted(set(re.findall(r'id="([a-z]+)-center"', text)))
+    prefixes = sorted(set(re.findall(r'id="([a-z-]+)-center"', text)) - {"hover-seven"})
     # Drop Seven-Black's own margin hints; the ones below replace them.
     text = re.sub(r'<rect\b[^>]*\bid="[a-z]+-hint-(top|bottom|left|right)-margin"[^>]*/>', "", text, flags=re.S)
     hints = ""
@@ -163,11 +164,15 @@ def main() -> None:
     shutil.copytree(SEVEN_BLACK, OUT)
     for f in ["widgets/panel-background.svg", "translucent/widgets/panel-background.svg", "opaque/widgets/panel-background.svg"]:
         add_center(OUT / f)
+    # Stock task manager hover states (see taskbar_hover.py).
+    add_task_hovers(OUT / "widgets/tasks.svg")
     add_task_margins(OUT / "widgets/tasks.svg")
     # Dark Aero: no white anywhere in popups (see darken_svg.py).
     for f, mode in DARK_SVGS:
         if (OUT / f).exists():
             darken_file(OUT / f, mode)
+    # After the darkening: the tray's open-item highlight is a small glass button.
+    tray_button_highlight(OUT / "widgets/tabbar.svgz")
     for f in ["dialogs/background.svgz", "translucent/dialogs/background.svgz"]:
         tint_dialog(OUT / f)
     for f in ["colors", "translucent/colors"]:
