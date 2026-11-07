@@ -144,8 +144,8 @@ for f in ui.glob("*.qml"):
             "duration: mouseAreaCompositingOff.containsMouse ? 130 : 250 }",
         )
         # A physical press. The menu opens on the mouse PRESS, so the orb
-        # cannot wait for the release: each left press (and each menu open,
-        # e.g. the Super key) plays a short pulse. The pushed-in frame shows
+        # cannot wait for the release: each left press (and each Super key
+        # press, open or close) plays a short pulse. The pushed-in frame shows
         # at 94% size for 100 ms, then the orb springs back up with a slight
         # overshoot. While the menu stays open, the orb shows its normal (or
         # hover) look, not the pushed-in frame (upstream kept it pressed).
@@ -165,14 +165,24 @@ for f in ui.glob("*.qml"):
     // ShojiWM: the press pulse (see patch-sevenstart.py).
     property bool pressedLook: false
     property real pressScale: 1
-    Connections {
-        target: mouseAreaCompositingOff
-        function onPressed(mouse) { if (mouse.button === Qt.LeftButton) pressPulse.restart(); }
+    // One pulse per press: a second ask within 150 ms is the same press.
+    property real lastPulse: 0
+    function pulse() {
+        var now = Date.now();
+        if (now - lastPulse < 150) return;
+        lastPulse = now;
+        pressPulse.restart();
     }
     Connections {
-        target: dashWindow
-        // A menu opened without a click (Super key) gets the same pulse.
-        function onVisibleChanged() { if (dashWindow.visible && !pressPulse.running) pressPulse.restart(); }
+        target: mouseAreaCompositingOff
+        function onPressed(mouse) { if (mouse.button === Qt.LeftButton) floatingOrb.pulse(); }
+    }
+    Connections {
+        target: Plasmoid
+        // The Super key: ShojiWM fires the widget's global shortcut, which
+        // toggles the menu. Every press pulses, open and close alike. Esc
+        // and a click outside close the menu without a pulse.
+        function onActivated() { floatingOrb.pulse(); }
     }
     SequentialAnimation {
         id: pressPulse

@@ -12,7 +12,8 @@ General/glass (default false), picks the look:
                  (both 200 ms, soft start and stop; the number sits
                  inside the light, centred on the light, and scales
                  with it as one unit),
-                 a press pops it to 1.3x
+                 a press works like the start orb: the light dips to
+                 0.9x in full blue, then springs back up
 
 The Aero layout (make-global-themes.py) writes glass = true. Clicking still
 switches the workspace, and the count still follows the workspaces.
@@ -101,8 +102,9 @@ NEW_BACKGROUND = """                background: Item {
                             source: Qt.resolvedUrl("../images/ws-light-active.svg")
                             sourceSize: Qt.size(width * 2, height * 2)
                             smooth: true
-                            opacity: pill.isCurrent || pill.pressed ? 1 : (pill.hovered ? 0.55 : 0)
-                            Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.InOutCubic } }
+                            // Full blue at once on a press; fades otherwise.
+                            opacity: pill.isCurrent || pill.pressedLook ? 1 : (pill.hovered ? 0.55 : 0)
+                            Behavior on opacity { enabled: !pill.tintSnap; NumberAnimation { duration: 200; easing.type: Easing.InOutCubic } }
                         }
                         // The number, in the light so the two scale as one.
                         // Noto Sans digits are all 0.572 em wide, and each
@@ -120,7 +122,7 @@ NEW_BACKGROUND = """                background: Item {
                             y: parent.height / 2 + 0.357 * font.pixelSize - baselineOffset
                             text: (index + 1).toString()
                             renderType: Text.CurveRendering
-                            color: pill.isCurrent || pill.hovered ? "#ffffff" : "#c4ccd8"
+                            color: pill.isCurrent || pill.hovered || pill.pressedLook ? "#ffffff" : "#c4ccd8"
                             font.family: "Noto Sans"
                             font.pixelSize: root.lightSize * 0.6
                             font.hintingPreference: Font.PreferNoHinting
@@ -132,21 +134,59 @@ NEW_BACKGROUND = """                background: Item {
 """
 qml = qml.replace(OLD_BACKGROUND, NEW_BACKGROUND)
 
+# The press, like the start orb (patch-sevenstart.py): the light dips to 0.9x
+# of its normal size in 50 ms and turns full blue at once. It stays down
+# while held, and at least 100 ms even for a fast click, then springs back to
+# its hover size in 180 ms with a small overshoot. grow = hover x press, so the
+# hover grow keeps its own soft 200 ms animation underneath.
+PRESS = """
+                // Glass mode: 1.2x under the pointer (soft start and stop).
+                property real hoverGrow: root.glass && hovered ? 1.2 : 1.0
+                Behavior on hoverGrow {
+                    NumberAnimation { duration: 200; easing.type: Easing.InOutCubic }
+                }
+                // The press (see patch-workspace-indicator.py): dip to 0.9x,
+                // hold at least 100 ms, spring back with a small overshoot.
+                property real pressFactor: 1
+                property bool pressedLook: false
+                property bool tintSnap: false
+                property real pressStart: 0
+                property real grow: root.glass ? hoverGrow * pressFactor : 1.0
+                onPressedChanged: {
+                    if (!root.glass)
+                        return;
+                    if (pressed) {
+                        releaseWait.stop();
+                        pressUp.stop();
+                        tintSnap = true;
+                        pressedLook = true;
+                        pressStart = Date.now();
+                        pressDown.to = 0.9 / hoverGrow;
+                        pressDown.restart();
+                    } else {
+                        releaseWait.interval = Math.max(1, 100 - (Date.now() - pressStart));
+                        releaseWait.restart();
+                    }
+                }
+                NumberAnimation { id: pressDown; target: pill; property: "pressFactor"; duration: 50; easing.type: Easing.OutCubic }
+                NumberAnimation { id: pressUp; target: pill; property: "pressFactor"; to: 1; duration: 180; easing.type: Easing.OutBack }
+                Timer {
+                    id: releaseWait
+                    onTriggered: {
+                        pill.tintSnap = false;
+                        pill.pressedLook = false;
+                        pressDown.stop();
+                        pressUp.restart();
+                    }
+                }
+"""
+
 # Round cells at the original size; in glass mode the light and its number
-# grow a little under the pointer and pop when pressed, like the title bar
-# traffic lights.
+# grow a little under the pointer and dip when pressed.
 qml = qml.replace(
     "                onClicked: root.switchDesktop(index)\n",
     "                onClicked: root.switchDesktop(index)\n"
-    "\n"
-    "                // 1.2x under the pointer (soft start and stop), 1.3x pressed (springs back).\n"
-    "                property real grow: root.glass ? (pressed ? 1.3 : (hovered ? 1.2 : 1.0)) : 1.0\n"
-    "                Behavior on grow {\n"
-    "                    NumberAnimation {\n"
-    "                        duration: 200\n"
-    "                        easing.type: pill.pressed ? Easing.OutBack : Easing.InOutCubic\n"
-    "                    }\n"
-    "                }\n",
+    + PRESS,
 )
 qml = qml.replace(
     "                contentItem: PC3.Label {\n"
@@ -164,7 +204,7 @@ qml = qml.replace(
     "    // The glass light's diameter: a little inside the round cell.\n"
     "    readonly property real lightSize: Math.round(Kirigami.Units.gridUnit * 1.3)\n",
 )
-for needle in ["property real grow", "readonly property real lightSize", "macOS glass light in blue", "scale: pill.grow", "visible: !root.glass", "Text.CurveRendering"]:
+for needle in ["property real grow", "id: pressDown", "pill.tintSnap", "readonly property real lightSize", "macOS glass light in blue", "scale: pill.grow", "visible: !root.glass", "Text.CurveRendering"]:
     if needle not in qml:
         raise SystemExit(f"patch failed: {needle!r} missing (original changed?)")
 (pkg / "contents/ui/main.qml").write_text(qml)
