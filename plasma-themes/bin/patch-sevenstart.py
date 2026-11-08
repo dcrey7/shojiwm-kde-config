@@ -21,6 +21,11 @@ if start_orb.exists():
     shutil.copy(start_orb, ui / "StartOrb.qml")
 else:
     print("note: no StartOrb.qml next to this script; the orb stays inside the panel")
+# The orb click's helper: sends "launcher.toggle" to ShojiWM (see the file).
+TOGGLE = pathlib.Path.home() / ".local/bin/shoji-launcher-toggle"
+TOGGLE.parent.mkdir(parents=True, exist_ok=True)
+shutil.copy(pathlib.Path(__file__).with_name("shoji-launcher-toggle"), TOGGLE)
+TOGGLE.chmod(0o755)
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from darken_svg import darken_file  # noqa: E402
 
@@ -132,6 +137,23 @@ for f in ui.glob("*.qml"):
             "pos.y += kicker.height - floatingOrbPanel.scaledHeight / 3; // ShojiWM: bottom-aligned",
         )
     if f.name == "CompactRepresentation.qml":
+        # A left click on the orb opens ShojiWM's own launcher, not this menu:
+        # it runs shoji-launcher-toggle (one IPC line, no wait). The orb's
+        # press pulse stays (FloatingOrb.qml). useShojiLauncher=false brings
+        # back SevenStart's menu. Plasmashell's PATH has no ~/.local/bin, so
+        # the script goes by its full path.
+        old = "            if(mouse.button === Qt.LeftButton)\n                showMenu();\n"
+        if s.count(old) != 1:
+            sys.exit("CompactRepresentation.qml: the orb's showMenu() click not found once (upstream changed?)")
+        s = s.replace(old, (
+            "            if(mouse.button === Qt.LeftButton) {\n"
+            "                if (Plasmoid.configuration.useShojiLauncher)\n"
+            f"                    menu_executable.exec(\"'{TOGGLE}' orb\"); // ShojiWM launcher\n"
+            "                else\n"
+            "                    showMenu();\n"
+            "            }\n"
+        ))
+    if f.name == "CompactRepresentation.qml":
         # The orb window (our StartOrb.qml) spans the screen width; its orb
         # size and place are orbWidth/orbHeight/orbX/orbY.
         for prop in ["width", "height", "x", "y"]:
@@ -184,6 +206,13 @@ for f in ui.glob("*.qml"):
         // and a click outside close the menu without a pulse.
         function onActivated() { floatingOrb.pulse(); }
     }
+    Connections {
+        target: Plasmoid.configuration
+        // ShojiWM's launcher: on each open or close, ShojiWM's config writes
+        // a new value (a time stamp) to General/orbPulse through Plasma
+        // scripting. Each new value plays one pulse.
+        function onOrbPulseChanged() { floatingOrb.pulse(); }
+    }
     SequentialAnimation {
         id: pressPulse
         PropertyAction { target: floatingOrb; property: "pressedLook"; value: true }
@@ -205,6 +234,25 @@ for f in ui.glob("*.qml"):
     if s != orig:
         f.write_text(s)
         print("patched", f.name)
+
+# Two settings for ShojiWM's launcher (see CompactRepresentation.qml and
+# FloatingOrb.qml above): useShojiLauncher (the orb click opens it) and
+# orbPulse (ShojiWM writes it to make the orb pulse).
+main_xml = pkg / "contents/config/main.xml"
+x = main_xml.read_text()
+anchor = '  <group name="General">\n'
+if x.count(anchor) != 1:
+    sys.exit("main.xml: General group not found once (upstream changed?)")
+x = x.replace(anchor, anchor + (
+    '    <entry name="useShojiLauncher" type="Bool">\n'
+    "      <default>true</default>\n"
+    "    </entry>\n"
+    '    <entry name="orbPulse" type="String">\n'
+    "      <default></default>\n"
+    "    </entry>\n"
+))
+main_xml.write_text(x)
+print("patched main.xml")
 
 # The menu's own pictures: the left pane and search field ("surface"), the
 # hover and selection boxes ("highlight"). See darken_svg.py.

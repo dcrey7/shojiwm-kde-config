@@ -1,0 +1,27 @@
+#!/bin/sh
+# Opens or closes the ShojiWM launcher. The SevenStart orb runs this on a click.
+# Usage: shoji-launcher-toggle [source]   (source: a plain word, default "cli")
+#
+#   orb click ──> this script ──> one JSON line ──> ShojiWM IPC socket
+#
+# The socket is $XDG_RUNTIME_DIR/shojiwm-$WAYLAND_DISPLAY.sock. The script sends
+# the line and exits; it does not wait for a reply.
+source=$(printf '%s' "${1:-cli}" | tr -cd 'A-Za-z0-9_-')
+dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+sock="$dir/shojiwm-${WAYLAND_DISPLAY:-wayland-1}.sock"
+if [ ! -S "$sock" ]; then
+    # No socket for this display: take the first ShojiWM socket there is.
+    for s in "$dir"/shojiwm-wayland-*.sock; do
+        [ -S "$s" ] && sock=$s && break
+    done
+fi
+line="{\"method\":\"launcher.toggle\",\"params\":{\"source\":\"$source\"}}"
+if command -v socat >/dev/null 2>&1; then
+    printf '%s\n' "$line" | exec socat -u - "UNIX-CONNECT:$sock"
+fi
+exec python3 -c '
+import socket, sys
+s = socket.socket(socket.AF_UNIX)
+s.connect(sys.argv[1])
+s.sendall(sys.argv[2].encode() + b"\n")
+' "$sock" "$line"
